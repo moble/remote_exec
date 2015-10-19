@@ -55,44 +55,6 @@ class RemoteKernel(object):
         print()
 
 
-class Server(object):
-
-    def __init__(self, hostname):
-        import os
-        self.variables = {}
-        print("Connecting to {0}".format(hostname))
-        self.connection = self.open_connection(hostname, os.getlogin())
-        print("Connected to {0}".format(hostname))
-
-    def exec(self, code):
-        print("I'm supposed to run this code:")
-        print("-"*80)
-        print(code)
-        print("-"*80)
-        print()
-
-    def open_connection(self, hostname, username):
-        import os.path
-        import paramiko
-        ssh = paramiko.SSHClient()
-        ssh._policy = paramiko.WarningPolicy()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_config = paramiko.SSHConfig()
-        user_config_file = os.path.expanduser("~/.ssh/config")
-        if os.path.exists(user_config_file):
-            with open(user_config_file) as f:
-                ssh_config.parse(f)
-        cfg = {'hostname': hostname, 'username': username}
-        user_config = ssh_config.lookup(cfg['hostname'])
-        for k in ('hostname', 'username', 'port'):
-            if k in user_config:
-                cfg[k] = user_config[k]
-        if 'proxycommand' in user_config:
-            cfg['sock'] = paramiko.ProxyCommand(user_config['proxycommand'])
-        ssh.connect(**cfg)
-        return ssh
-
-
 # The class MUST call this class decorator at creation time
 @magics_class
 class MyMagics(Magics):
