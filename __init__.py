@@ -87,10 +87,6 @@ class MyMagics(Magics):
         help='Variables from local scope that will be substituted into the given code'
     )
     @argument(
-        '-p', '--persistent',
-        help=''
-    )
-    @argument(
         'code',
         nargs='*',
     )
