@@ -71,14 +71,15 @@ different filenames on different systems.  You first define the dictionary
 Now, you can run code that will substitute those input values at the
 appropriate times:
 
-    %%remote_exec -k kernel1:/path/on/system1,kernel2:/different/path -o x,y -i filename
+    %%remote_exec -k kernel1:/path/on/system1,kernel2:/different/path -o x,y -i filenames
     import numpy as np
-    x, y = np.loadtxt({filename})
+    x, y = np.loadtxt({filenames})
 
 More input variables can be listed separated by commas.  Just remember that the
 variable name must be surrounded by braces to be substituted, and that the
-substitution will be exact, which is why we included the quotes in
-`'"file1.txt"'`, etc.
+substitution will be exact, which is why we included the quotes in the
+substitutions, as in `'"file1.txt"'`.  Of course, we could have also included
+the quotes in the actual code, and left them out of the substitutions.
 
 Note that the names `kernel1` and `kernel2` need only match a subset of your
 kernel's full name, so that `kernel1` could start a kernel that is actually
