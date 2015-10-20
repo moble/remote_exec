@@ -8,6 +8,14 @@ kernels can be remote kernels (probably best set up with
 simple way to run code on one or more remote systems from a local IPython
 instance.
 
+The `remote_ikernel` module is very useful for seamlessly running Jupyter
+notebooks on a local computer, but connecting to a remote system to actually do
+the calculations.  However, in some cases, it's useful to be able to run most
+of the calculations on the local computer, but get quick results from remote
+systems when transferring all the data needed for the calculation would take
+too long, or when results from several remote systems need to be combined into
+one analysis.  This module attempts to fill that gap.
+
 # Installation
 
 To install this extension, in IPython you can run
