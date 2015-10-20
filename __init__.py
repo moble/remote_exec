@@ -1,5 +1,28 @@
-from IPython.core.magic import (Magics, magics_class, line_magic, cell_magic,
-                                line_cell_magic, needs_local_scope)
+# coding: utf-8
+"""Notebook extension to run ipython code remotely, and get output
+
+This is most useful as a cell magic, though it is available as a line magic,
+too.  To run, make a cell something like the following:
+
+    %%remote_exec -k kernel1,kernel2 -o x,y
+    import numpy as np
+    x = np.linspace(0,6)
+    y = np.sin(x)
+
+Here, `kernel1,kernel2` lists some kernels that ipython knows how to run, and
+are the names of variables exported to the local namespace of the notebook
+where this is called.  Now, in another cell, we can plot the results as
+
+    plt.plot(kernel1.x, kernel1.y, label='kernel1')
+    plt.plot(kernel2.x, kernel2.y, label='kernel2')
+    plt.legend()
+
+It is also possible to use `%remote_exec` as a line magic.
+
+"""
+
+
+from IPython.core.magic import (Magics, magics_class, line_cell_magic, needs_local_scope)
 from IPython.core.magic_arguments import (
     argument, magic_arguments, parse_argstring, argument_group
 )
@@ -107,16 +130,16 @@ class RemoteKernelMagics(Magics):
         print('RemoteKernelMagics: {0}.close_kernels()'.format(self))
         for key, value in self.kernels:
             print('\tClosing {0},{1}'.format(key,value))
-            del value
+            value._shutdown()
 
     @magic_arguments()
     @argument(
         '-k', '--kernels', required=True,
-        help=''
+        help='Variables to be created in local scope, with names that match kernels on which to run the code'
     )
     @argument(
         '-o', '--output',
-        help=''
+        help='Variables to be exported from the remote kernel into the local object representing that kernel'
     )
     @argument(
         '-i', '--input',
@@ -129,26 +152,40 @@ class RemoteKernelMagics(Magics):
     @needs_local_scope
     @line_cell_magic
     def remote_exec(self, line, cell=None, local_ns=None):
-        """Run code remotely via SSH
+        """Run code remotely via ipython kernels
 
-        This command logs in via SSH to remote servers, opens an ipython shell,
-        and runs the given code.  It then returns the requested output
-        variables.
+        This command opens ipython kernels (possibly remotely with
+        `remote_ikernel`) and runs the given code.  It then returns the
+        requested output variables.
 
         Parameters
         ==========
-        s: string or comma-separated list of strings
-            Name of server or servers on which to run the code.  These must be
-            recognized by SSH, possibly via ~/.ssh/config.
-        o: string or comma-separated list of strings
+        kernels: string, comma-separated list of strings, or variable containing such
+            Name of kernels on which to run the code.  Each string must be a
+            valid variable name, as it will be exported to the local namespace.
+            The actual kernel names are searched for exact matches first of
+            all, then for partial matches, and finally any underscore in these
+            strings is used as a wild card to search for a match.  Any such
+            match must occur exactly once.  Known kernels can be found from the
+            command line with `jupyter-kernelspec list`.
+        output: string or comma-separated list of strings
             Names of output variables to be returned.  Objects with the names
             of the servers above are injected into the local namespace, and
             these variables can be accessed within each of those objects.
-        i: string or comma-separated list of strings
+        input: string or comma-separated list of strings
             Names of input variables to be used.  Each of these must be a
             dictionary in the local namespace, with keys given by the server
             names.  The corresponding values are then substituted into the code
-            before it is run remotely.
+            before it is run remotely wherever `{variable}` is found in the code.
+
+        Exports
+        =======
+        kernel1,kernel2,...
+            Objects named by the input `kernels`.  These contain the kernel
+            connection, and the returned variables.  So, if the `output` option
+            requests variables `x,y`, the result will be stored as `kernel1.x`,
+            `kernel1.y`, `kernel2.x`, etc.  These appear in the local namespace
+            in which this magic was used.
 
         """
         args = parse_argstring(self.remote_exec, line)
@@ -207,10 +244,28 @@ class RemoteKernelMagics(Magics):
             self.shell.user_ns[kernel_name]._execute_code(custom_code, initial_directory, output_variables)
 
 
-# In order to actually use these magics, you must register them with a
-# running IPython.  This code must be placed in a file that is loaded once
-# IPython is up and running:
-ip = get_ipython()
-# You can register the class itself without instantiating it.  IPython will
-# call the default constructor on it.
-ip.register_magics(RemoteKernelMagics)
+def close_kernels(ip):
+    ip.magics_manager.registry['RemoteKernelMagics'].close_kernels()
+
+    
+def load_ipython_extension(ip):
+    """Load the extension in IPython."""
+    import atexit
+    atexit.register(close_kernels, ip)
+    ip.register_magics(RemoteKernelMagics)
+
+
+def unload_ipython_extension(ip):
+    """Unload the extension in IPython"""
+    ip.magics_manager.registry['RemoteKernelMagics'].close_kernels()
+
+
+# # In order to actually use these magics, you must register them with a
+# # running IPython.  This code must be placed in a file that is loaded once
+# # IPython is up and running:
+# ip = get_ipython()
+# # You can register the class itself without instantiating it.  IPython will
+# # call the default constructor on it.
+# ip.register_magics(RemoteKernelMagics)
+# import atexit
+# atexit.register(close_kernels, ip)
