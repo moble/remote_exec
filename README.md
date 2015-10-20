@@ -80,9 +80,15 @@ variable name must be surrounded by braces to be substituted, and that the
 substitution will be exact, which is why we included the quotes in
 `'"file1.txt"'`, etc.
 
-Also note that the kernels are persistent, which means that the same kernels
-will be used in different notebook cells, so that you can reuse data or imports
-or whatever.
+Note that the names `kernel1` and `kernel2` need only match a subset of your
+kernel's full name, so that `kernel1` could start a kernel that is actually
+named `python_kernel1_myserver`.  The only stipulation is that the name you
+provide must match exactly one full kernel name, which may not be what is
+displayed in the Jupyter notebook's list of kernels.  To find the possible full
+kernel names, run `jupyter-kernelspec list` from the command line.  Also note
+that the kernels are persistent within your local IPython session, which means
+that the same kernels can be used in different cells, so that you can reuse
+data or imports or whatever.
 
 Finally, it is also possible to use this as a line magic, but putting the code
 at the end of the line -- though this is presumably only useful for initial
