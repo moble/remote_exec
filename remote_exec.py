@@ -77,15 +77,6 @@ class RemoteKernel(object):
     def _execute_code(self, code, directory, output_variables):
         import pickle
         pickle_dumps = 'pickle.dumps({' + ','.join(['"{0}":{0}'.format(variable) for variable in output_variables]) + '})'
-        # print("{0} is supposed to run this code:".format(self._kernel_name))
-        # print("-"*80)
-        # print(code)
-        # print("-"*80)
-        # print("in directory {0},".format(directory))
-        # print("with kernel {0},".format(self._kernel_full_name))
-        # print("and output {0}.".format(output_variables))
-        # print(pickle_dumps)
-        # print()
         if not self._kernel.is_alive():
             self._restart()
         if directory:
@@ -118,8 +109,10 @@ class RemoteKernelMagics(Magics):
         # dot.
         super(RemoteKernelMagics, self).__init__(**kwargs)
         from jupyter_client import MultiKernelManager
+        from tempfile import gettempdir
         self.kernel_manager = MultiKernelManager()
         self.kernels = {}
+        self.kernel_manager.connection_dir = gettempdir()
 
     def __del__(self):
         print('RemoteKernelMagics: {0}.__del__'.format(self))
@@ -258,14 +251,3 @@ def load_ipython_extension(ip):
 def unload_ipython_extension(ip):
     """Unload the extension in IPython"""
     ip.magics_manager.registry['RemoteKernelMagics'].close_kernels()
-
-
-# # In order to actually use these magics, you must register them with a
-# # running IPython.  This code must be placed in a file that is loaded once
-# # IPython is up and running:
-# ip = get_ipython()
-# # You can register the class itself without instantiating it.  IPython will
-# # call the default constructor on it.
-# ip.register_magics(RemoteKernelMagics)
-# import atexit
-# atexit.register(close_kernels, ip)
