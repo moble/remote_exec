@@ -19,58 +19,94 @@ class RemoteKernel(object):
         else:
             import re
             regex = re.compile(kernel_name.replace('_', '.*?'), re.I)
-            matches = [re_search.search(kernelspec) for kernelspec in kernelspecs]
+            matches = [regex.search(kernelspec) for kernelspec in kernelspecs]
             has_match = [bool(match) for match in matches]
             if sum(has_match) == 1:
                 kernel_full_name = kernelspecs[has_match.index(True)]
             else:
-                raise ValueError("Can't find exactly one kernel matching {0} in list:\n{1}".format(kernel_name, kernelspces))
+                raise ValueError("Can't find exactly one kernel matching '{0}' in list:\n{1}".format(kernel_name, kernelspecs))
 
         self._kernel_name = kernel_name
         self._kernel_full_name = kernel_full_name
         self._kernel_id = kernel_manager.start_kernel(kernel_full_name)
         self._kernel = kernel_manager.get_kernel(self._kernel_id)
         self._client = self._kernel.client()
-        self._client.execute('import pickle, os')
+        self._client.get_shell_msg(self._client.execute('import pickle, os'))
+
+    def __repr__(self):
+        return repr({k: self.__dict__[k] for k in self.__dict__ if not k.startswith('_')})
 
     def __del__(self):
-        self._client.shutdown_kernel()
+        print('RemoteKernel: {0}.__del__'.format(self))
+        self._shutdown()
+
+    def _shutdown(self):
+        self._kernel.shutdown_kernel()
+
+    def _restart(self):
+        if not self._kernel.is_alive():
+            self._kernel.start_kernel()
+        else:
+            self._kernel.restart_kernel()
+        self._client = self._kernel.client()
+        self._client.get_shell_msg(self._client.execute('import pickle, os'))
 
     def _execute_code(self, code, directory, output_variables):
         import pickle
         pickle_dumps = 'pickle.dumps({' + ','.join(['"{0}":{0}'.format(variable) for variable in output_variables]) + '})'
-        # if directory:
-        #     self._client.execute('os.chdir({0})'.format(directory))
-        # sent_msg_id = self._client.execute(code, user_expressions={'output':pickle_dumps})
-        # reply = self._client.get_shell_msg(sent_msg_id)
-        # self.__dict__.update(pickle.loads(eval(reply['content']['user_expressions']['output']['data']['text/plain'])))
-        print("{0} is supposed to run this code:".format(self._kernel_name))
-        print("-"*80)
-        print(code)
-        print("-"*80)
-        print("in directory {0},".format(directory))
-        print("with kernel {0},".format(self._kernel_full_name))
-        print("and output {0}.".format(output_variables))
-        print(pickle_dumps)
-        print()
+        # print("{0} is supposed to run this code:".format(self._kernel_name))
+        # print("-"*80)
+        # print(code)
+        # print("-"*80)
+        # print("in directory {0},".format(directory))
+        # print("with kernel {0},".format(self._kernel_full_name))
+        # print("and output {0}.".format(output_variables))
+        # print(pickle_dumps)
+        # print()
+        if not self._kernel.is_alive():
+            self._restart()
+        if directory:
+            reply = self._client.get_shell_msg(self._client.execute('os.chdir("{0}")'.format(directory)))
+            status = reply['content']['status']
+            if status != 'ok':
+                print('os.chdir("{0}") on {1} failed:\n\t{2}: {3}'.format(directory, self._kernel_name,
+                                                                          reply['content']['ename'], reply['content']['evalue']))
+        sent_msg_id = self._client.execute(code, user_expressions={'output':pickle_dumps})
+        reply = self._client.get_shell_msg(sent_msg_id)
+        status = reply['content']['status']
+        if status != 'ok':
+            print('Execution of code on {0} ({1}) failed:\n\t{2}: {3}'.format(self._kernel_name, self._kernel_full_name,
+                                                                              reply['content']['ename'], reply['content']['evalue']))
+        else:
+            output_bytes = reply['content']['user_expressions']['output']['data']['text/plain']
+            if not output_bytes.startswith('b'):
+                output_bytes = bytes(output_bytes, 'utf-8')
+            self.__dict__.update(pickle.loads(eval(output_bytes)))
 
 
 # The class MUST call this class decorator at creation time
 @magics_class
-class MyMagics(Magics):
+class RemoteKernelMagics(Magics):
 
     def __init__(self, **kwargs):
         # Create dictionary of server objects, each of which contains its
         # connection, a tuple of input variables, and a dictionary of output
         # variables.  The input and output variables should be addressable by a
         # dot.
-        super(MyMagics, self).__init__(**kwargs)
+        super(RemoteKernelMagics, self).__init__(**kwargs)
         from jupyter_client import MultiKernelManager
         self.kernel_manager = MultiKernelManager()
         self.kernels = {}
 
     def __del__(self):
+        print('RemoteKernelMagics: {0}.__del__'.format(self))
         for key, value in self.kernels:
+            value._shutdown()
+
+    def close_kernels(self):
+        print('RemoteKernelMagics: {0}.close_kernels()'.format(self))
+        for key, value in self.kernels:
+            print('\tClosing {0},{1}'.format(key,value))
             del value
 
     @magic_arguments()
@@ -154,6 +190,7 @@ class MyMagics(Magics):
                 if not kernel_name in self.shell.user_ns[local_var]:
                     raise KeyError("No key '{0}' in dictionary '{1}'".format(kernel_name, local_var))
 
+        # Make sure we have some list of output variables
         if args.output:
             output_variables = args.output.split(',')
         else:
@@ -168,7 +205,6 @@ class MyMagics(Magics):
                                                   self.shell.user_ns[local_var][kernel_name])
 
             self.shell.user_ns[kernel_name]._execute_code(custom_code, initial_directory, output_variables)
-            print()
 
 
 # In order to actually use these magics, you must register them with a
@@ -177,4 +213,4 @@ class MyMagics(Magics):
 ip = get_ipython()
 # You can register the class itself without instantiating it.  IPython will
 # call the default constructor on it.
-ip.register_magics(MyMagics)
+ip.register_magics(RemoteKernelMagics)
