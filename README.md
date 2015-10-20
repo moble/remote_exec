@@ -8,6 +8,33 @@ kernels can be remote kernels (probably best set up with
 simple way to run code on one or more remote systems from a local IPython
 instance.
 
+# Installation
+
+To install this extension, in IPython you can run
+
+    %install_ext https://raw.githubusercontent.com/moble/remote_exec/master/remote_exec.py
+
+This will download that file to somewhere like `~/.ipython/extensions/` on your
+computer, where IPython will be able to find it.  You will also get a warning
+that `install_ext` is deprecated, but IPython has not yet settled on a useful
+way to do this in the future, so we'll have to live with it.
+
+Now you have to load it into your IPython session.  If you just want to try out
+the extension, you can load it just once by running
+
+    %load_ext remote_exec
+
+in your IPython session.  To load the extension automatically every time you
+run IPython, add something like the following to your `ipython_config.py` file:
+
+    c.InteractiveShellApp.extensions = ['remote_exec',]
+
+You can find this file's directory by doing `ipython profile locate` on the
+command line.
+
+
+# Use
+
 To run, make a cell something like the following:
 
     %%remote_exec -k kernel1,kernel2 -o x,y

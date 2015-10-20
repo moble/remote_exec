@@ -250,4 +250,4 @@ def load_ipython_extension(ip):
 
 def unload_ipython_extension(ip):
     """Unload the extension in IPython"""
-    ip.magics_manager.registry['RemoteKernelMagics'].close_kernels()
+    close_kernels(ip)
