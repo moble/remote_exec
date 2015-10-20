@@ -89,9 +89,10 @@ displayed in the Jupyter notebook's list of kernels.  To find the possible full
 kernel names, run `jupyter-kernelspec list` from the command line.  Also note
 that the kernels are persistent within your local IPython session, which means
 that the same kernels can be used in different cells, so that you can reuse
-data or imports or whatever.
+data or imports or whatever.  The remote kernels are all killed whenever your
+main IPython kernel exits.
 
-Finally, it is also possible to use this as a line magic, but putting the code
+Finally, it is also possible to use this as a line magic, by putting the code
 at the end of the line -- though this is presumably only useful for initial
 imports or something comparable:
 
