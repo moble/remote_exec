@@ -74,31 +74,38 @@ In this case, you need to create a dictionary mapping the kernel names to a
 string containing the desired code.  For example, you might want to analyze
 different filenames on different systems.  You first define the dictionary
 
-    filenames = {'kernel1': '"file1.txt"', 'kernel2': '"file2.txt"'}
+    filenames = {'kernel1': 'file1.txt', 'kernel2': 'file2.txt'}
 
 Now, you can run code that will substitute those input values at the
 appropriate times:
 
     %%remote_exec -k kernel1:/path/on/system1,kernel2:/different/path -o x,y -i filenames
     import numpy as np
-    x, y = np.loadtxt({filenames})
+    x, y = np.loadtxt("{filenames}").T
 
 More input variables can be listed separated by commas.  Just remember that the
 variable name must be surrounded by braces to be substituted, and that the
-substitution will be exact, which is why we included the quotes in the
-substitutions, as in `'"file1.txt"'`.  Of course, we could have also included
-the quotes in the actual code, and left them out of the substitutions.
+substitution will be exact.  In this case, `np.loadtxt` needs a string, while
+`{filenames}` will be substituted with the value of the string without the
+quotes, so we need to write the code with the quotes.  Of course, we could have
+also included the quotes in the `filenames` variables, as in `"file1.txt"`.
 
 Note that the names `kernel1` and `kernel2` need only match a subset of your
 kernel's full name, so that `kernel1` could start a kernel that is actually
 named `python_kernel1_myserver`.  The only stipulation is that the name you
 provide must match exactly one full kernel name, which may not be what is
 displayed in the Jupyter notebook's list of kernels.  To find the possible full
-kernel names, run `jupyter-kernelspec list` from the command line.  Also note
-that the kernels are persistent within your local IPython session, which means
-that the same kernels can be used in different cells, so that you can reuse
-data or imports or whatever.  The remote kernels are all killed whenever your
-main IPython kernel exits.
+kernel names, run `jupyter-kernelspec list` from the command line.
+
+Also note that the kernels are persistent within your local IPython session,
+which means that the same kernels can be used in different cells, so that you
+can reuse data or imports or whatever.  The remote kernels are all killed
+whenever your main IPython kernel exits.  It is also possible to manually
+shutdown the kernels using the `-s` option.  The kernels will still exist until
+the main IPython kernel exits, but they will not be running unless they are
+asked to run code again, in which case they automatically restart.  Thus,
+adding `-s` to any call with code is a handy way to restart the kernel before
+the code is run.
 
 Finally, it is also possible to use this as a line magic, by putting the code
 at the end of the line -- though this is presumably only useful for initial

@@ -116,12 +116,12 @@ class RemoteKernelMagics(Magics):
 
     def __del__(self):
         print('RemoteKernelMagics: {0}.__del__'.format(self))
-        for key, value in self.kernels:
+        for key, value in self.kernels.items():
             value._shutdown()
 
     def close_kernels(self):
         print('RemoteKernelMagics: {0}.close_kernels()'.format(self))
-        for key, value in self.kernels:
+        for key, value in self.kernels.items():
             print('\tClosing {0},{1}'.format(key,value))
             value._shutdown()
 
@@ -137,6 +137,10 @@ class RemoteKernelMagics(Magics):
     @argument(
         '-i', '--input',
         help='Variables from local scope that will be substituted into the given code'
+    )
+    @argument(
+        '-s', '--shutdown', action='store_true',
+        help='Shut down the given kernels.  If code is also given with this option, the kernels will automatically restart before the code is run.'
     )
     @argument(
         'code',
@@ -170,6 +174,10 @@ class RemoteKernelMagics(Magics):
             dictionary in the local namespace, with keys given by the server
             names.  The corresponding values are then substituted into the code
             before it is run remotely wherever `{variable}` is found in the code.
+        shutdown: bool, defaults to False
+            Shut down the given kernels.  If code is also given along with this
+            option, the kernels will automatically restart before the code is
+            run.
 
         Exports
         =======
@@ -207,6 +215,7 @@ class RemoteKernelMagics(Magics):
         for kernel_name in kernel_names:
             if not kernel_name in self.shell.user_ns:
                 self.shell.user_ns[kernel_name] = RemoteKernel(self.kernel_manager, kernel_name)
+            self.kernels[kernel_name] = self.shell.user_ns[kernel_name]
 
         # Make sure we have the local variables we claim to need
         if args.input:
@@ -226,15 +235,21 @@ class RemoteKernelMagics(Magics):
         else:
             output_variables = []
 
-        # Now, step through and do the work
-        for kernel_name, initial_directory in zip(kernel_names, initial_directories):
-            # Transform the code with the local variables
-            custom_code = code
-            for local_var in local_vars:
-                custom_code = custom_code.replace('{{{0}}}'.format(local_var),
-                                                  self.shell.user_ns[local_var][kernel_name])
+        # Shutdown all listed kernels, if requested
+        if args.shutdown:
+            for kernel_name in kernel_names:
+                self.shell.user_ns[kernel_name]._shutdown()
 
-            self.shell.user_ns[kernel_name]._execute_code(custom_code, initial_directory, output_variables)
+        # Now, step through and do the work
+        if code:
+            for kernel_name, initial_directory in zip(kernel_names, initial_directories):
+                # Transform the code with the local variables
+                custom_code = code
+                for local_var in local_vars:
+                    custom_code = custom_code.replace('{{{0}}}'.format(local_var),
+                                                      self.shell.user_ns[local_var][kernel_name])
+
+                self.shell.user_ns[kernel_name]._execute_code(custom_code, initial_directory, output_variables)
 
 
 def close_kernels(ip):
