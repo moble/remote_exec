@@ -1,9 +1,9 @@
 IPython extension to run code remotely and return some results
 
 This extension provides line and cell
-[magics](http://ipython.readthedocs.org/en/stable/interactive/magics.html) to
-run code on other python kernels, and return requested variables.  These
-kernels can be remote kernels (probably best set up with
+[magics](http://ipython.readthedocs.org/en/stable/interactive/magics.html) for
+IPython to run code on other python kernels, and return requested variables.
+These kernels can be remote kernels (probably best set up with
 [`remote_ikernel`](https://bitbucket.org/tdaff/remote_ikernel/)), providing a
 simple way to run code on one or more remote systems from a local IPython
 instance.
@@ -14,18 +14,19 @@ the calculations.  However, in some cases, it's useful to be able to run most
 of the calculations on the local computer, but get quick results from remote
 systems when transferring all the data needed for the calculation would take
 too long, or when results from several remote systems need to be combined into
-one analysis.  This module attempts to fill that gap.
+one analysis.  This module attempts to fill that gap by running a single line
+of code, an entire cell, or even multiple cells on remote kernels and returning
+the requested data.
+
 
 # Installation
 
-To install this extension, in IPython you can run
+To install this extension, the easiest method is to use `pip`:
 
-    %install_ext https://raw.githubusercontent.com/moble/remote_exec/master/remote_exec.py
+    pip install https://github.com/moble/remote_exec/archive/master.zip
 
-This will download that file to somewhere like `~/.ipython/extensions/` on your
-computer, where IPython will be able to find it.  You will also get a warning
-that `install_ext` is deprecated, but IPython has not yet settled on a useful
-way to do this in the future, so we'll have to live with it.
+If that doesn't work, you can download this repository, and run `python install
+setup.py`.
 
 Now you have to load it into your IPython session.  If you just want to try out
 the extension, you can load it just once by running
@@ -88,14 +89,17 @@ variable name must be surrounded by braces to be substituted, and that the
 substitution will be exact.  In this case, `np.loadtxt` needs a string, while
 `{filenames}` will be substituted with the value of the string without the
 quotes, so we need to write the code with the quotes.  Of course, we could have
-also included the quotes in the `filenames` variables, as in `"file1.txt"`.
+also included the quotes in the `filenames` variables, as in `'"file1.txt"'`.
 
 Note that the names `kernel1` and `kernel2` need only match a subset of your
 kernel's full name, so that `kernel1` could start a kernel that is actually
 named `python_kernel1_myserver`.  The only stipulation is that the name you
 provide must match exactly one full kernel name, which may not be what is
 displayed in the Jupyter notebook's list of kernels.  To find the possible full
-kernel names, run `jupyter-kernelspec list` from the command line.
+kernel names, run `jupyter-kernelspec list` from the command line.  Reasonably
+similar versions of python are needed on each system.  In particular, the data
+is pickled on the remote systems, and unpickled on the local system.  This
+seems to require that all systems run either python 2 or python 3 -- no mixing.
 
 Also note that the kernels are persistent within your local IPython session,
 which means that the same kernels can be used in different cells, so that you

@@ -1,23 +1,7 @@
 # coding: utf-8
 """Notebook extension to run ipython code remotely, and get output
 
-This is most useful as a cell magic, though it is available as a line magic,
-too.  To run, make a cell something like the following:
-
-    %%remote_exec -k kernel1,kernel2 -o x,y
-    import numpy as np
-    x = np.linspace(0,6)
-    y = np.sin(x)
-
-Here, `kernel1,kernel2` lists some kernels that ipython knows how to run, and
-are the names of variables exported to the local namespace of the notebook
-where this is called.  Now, in another cell, we can plot the results as
-
-    plt.plot(kernel1.x, kernel1.y, label='kernel1')
-    plt.plot(kernel2.x, kernel2.y, label='kernel2')
-    plt.legend()
-
-It is also possible to use `%remote_exec` as a line magic.
+For details, see the README at <https://github.com/moble/remote_exec>.
 
 """
 
@@ -152,8 +136,11 @@ class RemoteKernelMagics(Magics):
         """Run code remotely via ipython kernels
 
         This command opens ipython kernels (possibly remotely with
-        `remote_ikernel`) and runs the given code.  It then returns the
-        requested output variables.
+        `remote_ikernel`) and runs the given code.  It then insert the
+        requested output variables into the calling namespace, in the form of
+        objects named for the kernels, which each contain the requested
+        variables as members.  For more details, see the README at
+        <https://github.com/moble/remote_exec>.
 
         Parameters
         ==========
